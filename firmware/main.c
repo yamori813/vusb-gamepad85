@@ -20,12 +20,14 @@
 
 /*
 Pin assignment:
-PB1 = key input (active low with pull-up)
+PB1(6) = key input (active low with pull-up)
+PB3(2) = led
 
-PB0, PB2 = USB data lines
+PB0(5), PB2(7) = USB data lines
 */
 
 #define BIT_KEY 1
+#define LED_PIN   PB3
 
 #define REVERS_KEY
 
@@ -40,29 +42,45 @@ PB0, PB2 = USB data lines
 
 static uchar    reportBuffer[1];    /* buffer for HID reports */
 static uchar    idleRate;           /* in 4 ms units */
+static uchar    led;
 
 /* ------------------------------------------------------------------------- */
-PROGMEM const char usbHidReportDescriptor[34] = {
-    0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
-    0x09, 0x05,                    // USAGE (Game Pad)
-    0xa1, 0x01,                    // COLLECTION (Application)
-    0x09, 0x05,                    //   USAGE (Game Pad)
-    0xa1, 0x00,                    //   COLLECTION (Physical)
-    0x05, 0x09,                    //     USAGE_PAGE (Button)
-    0x19, 0x01,                    //     USAGE_MINIMUM (Button 1)
-    0x29, 0x01,                    //     USAGE_MAXIMUM (Button 1)
-    0x15, 0x00,                    //     LOGICAL_MINIMUM (0)
-    0x25, 0x01,                    //     LOGICAL_MAXIMUM (1)
-    0x95, 0x01,                    //     REPORT_COUNT (1)
-    0x75, 0x01,                    //     REPORT_SIZE (1)
-    0x81, 0x02,                    //     INPUT (Data,Var,Abs)
-    0x95, 0x01,                    //     REPORT_COUNT (1)
-    0x75, 0x07,                    //     REPORT_SIZE (7)
-    0x81, 0x03,                    //     INPUT (Cnst,Var,Abs)
-    0xc0,                          //     END_COLLECTION
-    0xc0                           // END_COLLECTION
+// usbHidReportDescriptor size define in usbconfig.h
+PROGMEM const char usbHidReportDescriptor[49] = {
+// 6 byte
+    0x05, 0x01,        // Usage Page (Generic Desktop)
+    0x09, 0x05,        // Usage (Gamepad)
+    0xA1, 0x01,        // Collection (Application)
+    
+    // --- ボタン入力 (Input: 1 Buttons) ---
+// 22 byge
+    0x05, 0x09,        //   Usage Page (Button)
+    0x19, 0x01,        //   Usage Minimum (Button 1)
+    0x29, 0x01,        //   Usage Maximum (Button 1)
+    0x15, 0x00,        //   Logical Minimum (0)
+    0x25, 0x01,        //   Logical Maximum (1)
+    0x75, 0x01,        //   Report Size (1 bit)
+    0x95, 0x01,        //   Report Count (1 items)
+    0x81, 0x02,        //   Input (Data, Var, Abs) -> ボタンの状態
+    0x75, 0x07,        //   REPORT_SIZE (7 bits)
+    0x95, 0x01,        //   REPORT_COUNT (1)
+    0x81, 0x03,        //   INPUT (Cnst,Var,Abs)
+    
+    // --- LED出力 (Output: 1 LED) ---
+// 20 byte
+    0x05, 0x08,        //   Usage Page (LEDs)
+    0x09, 0x01,        //   Usage (Num Lock)
+    0x15, 0x00,        //   Logical Minimum (0)
+    0x25, 0x01,        //   Logical Maximum (1)
+    0x75, 0x01,        //   Report Size (1 bit)
+    0x95, 0x01,        //   Report Count (1 item)
+    0x91, 0x02,        //   Output (Data, Var, Abs) -> ホストからのLED制御
+    0x75, 0x01,        //   Report Size (1 bit)
+    0x95, 0x07,        //   Report Count (7 bits)
+    0x91, 0x03,        //   Output (Cnst, Var, Abs)
+    
+    0xC0               // End Collection
 };
-
 
 /* ------------------------------------------------------------------------- */
 
@@ -90,6 +108,19 @@ static void timerInit(void)
 /* ------------------------ interface to USB driver ------------------------ */
 /* ------------------------------------------------------------------------- */
 
+uchar usbFunctionWrite(uchar *data, uchar len) {
+    led = data[0];
+
+//    PORTB ^= (1 << LED_PIN);
+    if (led & 0x01) {
+      PORTB |= (1 << LED_PIN);
+    } else {
+      PORTB &= ~(1 << LED_PIN);
+    }
+
+    return 1;
+}
+
 uchar	usbFunctionSetup(uchar data[8])
 {
 usbRequest_t    *rq = (void *)data;
@@ -100,6 +131,8 @@ usbRequest_t    *rq = (void *)data;
             /* we only have one report type, so don't look at wValue */
             reportBuffer[0] = keyPressed();
             return sizeof(reportBuffer);
+        }else if(rq->bRequest == USBRQ_HID_SET_REPORT){
+             return USB_NO_MSG; 
         }else if(rq->bRequest == USBRQ_HID_GET_IDLE){
             usbMsgPtr = &idleRate;
             return 1;
@@ -184,6 +217,7 @@ uchar   calibrationValue;
 uchar   idleCounter = 0;
 uchar   key, lastKey = 0, keyDidChange = 0;
 
+    led = 1;
 	// this is work around at after wdt reset
     wdt_enable(WDTO_4S);
     calibrationValue = eeprom_read_byte(0); /* calibration value from last time */
@@ -196,6 +230,7 @@ uchar   key, lastKey = 0, keyDidChange = 0;
         _delay_ms(15);
     }
     usbDeviceConnect();
+    DDRB |= (1 << LED_PIN);
     PORTB |= 1 << BIT_KEY;  /* pull-up on key input */
     wdt_enable(WDTO_1S);
     timerInit();
