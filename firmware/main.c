@@ -20,8 +20,8 @@
 
 /*
 Pin assignment:
-PB1(6) = key input (active low with pull-up)
-PB3(2) = led
+PB1(6) = Button:Button_1 (active low with pull-up)
+PB3(2) = LEDs:Num_Lock
 
 PB0(5), PB2(7) = USB data lines
 */
@@ -129,7 +129,10 @@ usbRequest_t    *rq = (void *)data;
     if((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_CLASS){    /* class request type */
         if(rq->bRequest == USBRQ_HID_GET_REPORT){  /* wValue: ReportType (highbyte), ReportID (lowbyte) */
             /* we only have one report type, so don't look at wValue */
-            reportBuffer[0] = keyPressed();
+            if((rq->wValue.word >> 8) == 1)
+                reportBuffer[0] = keyPressed();
+            else
+                reportBuffer[0] = led;
             return sizeof(reportBuffer);
         }else if(rq->bRequest == USBRQ_HID_SET_REPORT){
              return USB_NO_MSG; 
