@@ -91,7 +91,7 @@ static uchar    keyPressed(void)
 #ifdef REVERS_KEY
     if((PINB & (1 << BIT_KEY)) != 0)
 #else
-	if((PINB & (1 << BIT_KEY)) == 0)
+    if((PINB & (1 << BIT_KEY)) == 0)
 #endif
 		return 1;
     return 0;
@@ -111,7 +111,6 @@ static void timerInit(void)
 uchar usbFunctionWrite(uchar *data, uchar len) {
     led = data[0];
 
-//    PORTB ^= (1 << LED_PIN);
     if (led & 0x01) {
       PORTB |= (1 << LED_PIN);
     } else {
@@ -128,7 +127,7 @@ usbRequest_t    *rq = (void *)data;
     usbMsgPtr = reportBuffer;
     if((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_CLASS){    /* class request type */
         if(rq->bRequest == USBRQ_HID_GET_REPORT){  /* wValue: ReportType (highbyte), ReportID (lowbyte) */
-            /* we only have one report type, so don't look at wValue */
+            /* we have button input and led output report type */
             if((rq->wValue.word >> 8) == 1)
                 reportBuffer[0] = keyPressed();
             else
@@ -247,19 +246,6 @@ uchar   key, lastKey = 0, keyDidChange = 0;
             lastKey = key;
             keyDidChange = 1;
         }
-#if 0
-		if(TIFR & (1<<TOV0)){   /* 22 ms timer */
-            TIFR = 1<<TOV0;
-            if(idleRate != 0){
-                if(idleCounter > 4){
-                    idleCounter -= 5;   /* 22 ms in units of 4 ms */
-                }else{
-                    idleCounter = idleRate;
-                    keyDidChange = 1;
-                }
-            }
-        }
-#endif
         if(keyDidChange && usbInterruptIsReady()){
             keyDidChange = 0;
             /* use last key and not current key status in order to avoid lost
