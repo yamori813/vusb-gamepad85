@@ -220,7 +220,7 @@ uchar   calibrationValue;
 uchar   idleCounter = 0;
 uchar   key, lastKey = 0, keyDidChange = 0;
 
-    led = 1;
+    led = 0;
 	// this is work around at after wdt reset
     wdt_enable(WDTO_4S);
     calibrationValue = eeprom_read_byte(0); /* calibration value from last time */
