@@ -47,13 +47,13 @@ static uchar    led;
 /* ------------------------------------------------------------------------- */
 // usbHidReportDescriptor size define in usbconfig.h
 PROGMEM const char usbHidReportDescriptor[49] = {
-// 6 byte
+// 6 bytes
     0x05, 0x01,        // Usage Page (Generic Desktop)
     0x09, 0x05,        // Usage (Gamepad)
     0xA1, 0x01,        // Collection (Application)
     
     // --- ボタン入力 (Input: 1 Buttons) ---
-// 22 byge
+// 22 bytes
     0x05, 0x09,        //   Usage Page (Button)
     0x19, 0x01,        //   Usage Minimum (Button 1)
     0x29, 0x01,        //   Usage Maximum (Button 1)
@@ -67,7 +67,7 @@ PROGMEM const char usbHidReportDescriptor[49] = {
     0x81, 0x03,        //   INPUT (Cnst,Var,Abs)
     
     // --- LED出力 (Output: 1 LED) ---
-// 20 byte
+// 20 bytes
     0x05, 0x08,        //   Usage Page (LEDs)
     0x09, 0x01,        //   Usage (Num Lock)
     0x15, 0x00,        //   Logical Minimum (0)
